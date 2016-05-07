@@ -185,7 +185,6 @@ function showFoundEmailAddress(email_json, count_json) {
 
   window.profile["email"] = email_json.email;
   window.profile["confidence_score"] = email_json.score;
-  console.log(window.profile);
 
   if (count_json.count > 1) { es = 'es' }
   else { es = '' }
@@ -441,9 +440,38 @@ function showError(error) {
 }
 
 
-// Finds the domain name of the last experience or returns false
+// Finds the domain name of the last experience or returns "none"
+//
+// 1. We try to find it directly on the LinkeDIn company page
+// 2. We try to find it using Clearbit API
 //
 function getWebsite(profile, callback) {
+  getWebsiteFromProfile(profile, function(website) {
+    if (website == "none") {
+      $.ajax({
+        url : "https://autocomplete.clearbit.com/v1/companies/suggest?query=" +  encodeURIComponent(profile["last_company"]).substring(0, 17),
+        type : 'GET',
+        success : function(response){
+          if (typeof response[0] !== "undefined") {
+            callback(response[0].domain);
+          }
+          else {
+            callback("none");
+          }
+        },
+        error : function() {
+          callback("none");
+        }
+      });
+    }
+    else {
+      callback(website);
+    }
+  });
+}
+
+
+function getWebsiteFromProfile(profile, callback) {
   if (typeof profile["domain"] == "undefined") {
     if (typeof profile["last_company"] != "undefined" && typeof profile["last_company_path"] != "undefined") {
       if (profile["last_company_path"].indexOf("linkedin.com") > -1) {
